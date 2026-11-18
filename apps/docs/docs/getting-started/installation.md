@@ -1,0 +1,165 @@
+---
+id: installation
+title: Installation
+sidebar_label: Installation
+slug: /getting-started/installation
+---
+
+React Native Skia brings the [Skia Graphics Library](https://skia.org/) to React Native.
+Skia serves as the graphics engine for Google Chrome and Chrome OS, Android, Flutter, Mozilla Firefox, Firefox OS, and many other products.
+
+:::info[React Native Skia v3]
+
+This is the documentation of React Native Skia v3, which renders with Skia Graphite and is published on npm as `react-native-skia`.
+
+- Upgrading from v2? The package on npm is `react-native-skia`.
+- v2 is still maintained. Its documentation is available at [wcandillon.github.io/react-native-skia/v2](https://wcandillon.github.io/react-native-skia/v2/).
+
+:::
+
+```sh
+yarn add react-native-skia
+# or
+npm install react-native-skia
+```
+
+The Skia prebuilt binaries are resolved automatically by the native build systems, and no `postinstall` script is required:
+
+- On Android, Gradle downloads them from the [GitHub releases](/releases) of this repository the first time it builds, only for the architectures being built, and caches them like any other Gradle dependency. Each archive is verified against a checksum shipped in the package. To download them from a mirror or a local directory instead, set the `reactNativeSkiaBinariesUrl` Gradle property (or the `REACT_NATIVE_SKIA_BINARIES_URL` environment variable) to a URL or a `file:///` directory that holds the release assets under `binaries-<version>/`.
+- On iOS, macOS and tvOS, they are delivered as regular npm dependencies (`react-native-skia-graphite-apple-*`, and `react-native-webgpu-dawn` for the WebGPU implementation Skia renders with), which CocoaPods resolves. The long-term plan is to move the Apple platforms to Swift Package Manager, and to download these binaries from the same GitHub releases instead of npm.
+
+## Requirements
+
+| | Minimum version |
+|:--|:--|
+| React Native | `0.79`, with the New Architecture |
+| React | `19` |
+| iOS | `15.1` |
+| tvOS | `15.1` |
+| macOS | `14.0` |
+| Android | API level 26 (`minSdkVersion = 26`) |
+| Reanimated (optional) | `react-native-reanimated@>=4.0.0` with `react-native-worklets@>=0.7.0` |
+
+React Native Skia runs on iOS, Android, macOS, Mac Catalyst, tvOS, and [the Web](/docs/getting-started/web).
+
+Android TV is not supported by v3. It remains supported by [v2](https://wcandillon.github.io/react-native-skia/v2/docs/getting-started/installation/).
+For `react-native@<=0.78` and `react@<=18`, stay on the 1.x line at version `1.12.4` or below.
+On React Native below `0.83` (React `19.0` or `19.1`), your package manager warns that `react-reconciler` asks for React `19.2`: this is expected, as React Native Skia ships React 19.2's reconciler, which also renders on React 19.0 and 19.1.
+
+## iOS
+
+Run `pod install` on the `ios/` directory.
+
+## macOS
+
+Run `pod install` in the `macos/` directory.
+
+## Android
+
+React Native Skia requires Android API level 26 or above and renders with Vulkan.
+React Native projects default to a lower `minSdkVersion`, so raise it in `android/build.gradle`:
+
+```groovy
+buildscript {
+    ext {
+        minSdkVersion = 26
+    }
+}
+```
+
+### Vulkan
+
+Skia renders with Vulkan 1.1, which every 64-bit device shipped with Android 10 or later supports.
+The library's manifest declares it as a required feature, so the Play Store does not serve your app to devices without it.
+This does not affect the emulator (use an API 29 or later image with hardware graphics acceleration).
+
+On a device without Vulkan the app still runs: `Skia.gpu.isAvailable` is false, `Skia.gpu.error` says why, and canvases stay blank (see [the GPU device](/docs/webgpu#the-gpu-device)).
+An app that has to render on such devices uses [v2](https://wcandillon.github.io/react-native-skia/v2/docs/getting-started/installation/), which renders with OpenGL ES.
+To ship to those devices anyway, remove the declaration from your app's manifest and check the flag before rendering with Skia:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+  <uses-feature android:name="android.hardware.vulkan.version" tools:node="remove" />
+</manifest>
+```
+
+If another dependency already declares `android.hardware.vulkan.version` with a different version, keep one declaration and mark it `tools:replace="android:version"`.
+
+Currently, you will need Android NDK to be installed.
+If you have Android Studio installed, make sure `$ANDROID_NDK` is available.
+`ANDROID_NDK=/Users/username/Library/Android/sdk/ndk/<version>` for instance.
+
+If the NDK is not installed, you can install it via Android Studio by going to the menu _File > Project Structure_
+
+And then the _SDK Location_ section. It will show you the NDK path, or the option to download it if you don't have it installed.
+
+### TroubleShooting
+
+For error **_CMake 'X.X.X' was not found in SDK, PATH, or by cmake.dir property._**
+
+open _Tools > SDK Manager_, switch to the _SDK Tools_ tab.
+Find `CMake` and click _Show Package Details_ and download compatiable version **'X.X.X'**, and apply to install.
+
+## Expo
+
+React Native Skia v3 requires a [development build](https://docs.expo.dev/develop/development-builds/introduction/).
+It does not run in Expo Go, which bundles the native code of v2.
+
+```sh
+npx expo install react-native-skia expo-build-properties
+```
+
+Use [expo-build-properties](https://docs.expo.dev/versions/latest/sdk/build-properties/) to set the Android `minSdkVersion` in your app config:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      ["expo-build-properties", { "android": { "minSdkVersion": 26 } }]
+    ]
+  }
+}
+```
+
+Then create the development build with `npx expo run:ios` and `npx expo run:android`.
+
+## Web
+
+To use this library in the browser, see [these instructions](/docs/getting-started/web).
+
+## Debugging
+
+We recommend using React Native DevTools to debug your JS code: see the [React Native docs](https://reactnative.dev/docs/debugging). Alternatively, you can debug both JS and platform code in VS Code and via native IDEs. If using VS Code, we recommend [Expo Tools](https://github.com/expo/vscode-expo), [Radon IDE](https://ide.swmansion.com/), or Microsoft's [React Native Tools](https://marketplace.visualstudio.com/items?itemName=msjsdiag.vscode-react-native#debugging-react-native-applications).
+
+## Testing with Jest
+
+React Native Skia test mocks use a web implementation that depends on loading CanvasKit.
+
+The very first step is to make sure that your Skia files are not being transformed by jest, for instance, we can add it the `transformIgnorePatterns` directive:
+```js
+"transformIgnorePatterns": [
+  "node_modules/(?!(react-native|react-native.*|@react-native.*|@?react-navigation.*|react-native-skia)/)"
+]
+```
+
+You also need to add the following to your `jest.config.js` file:
+
+```js
+// jest.config.js
+module.exports = {
+  // Other values
+  testEnvironment: "react-native-skia/jestEnv.js",
+  setupFilesAfterEnv: [
+    "react-native-skia/jestSetup.js",
+  ],
+};
+```
+
+The `jestEnv.js` will load CanvasKit for you and `jestSetup.js` mocks React Native Skia.
+You can also have a look at the [example app](/tree/main/apps/example) to see how Jest tests are enabled there.
+
+## Playground
+
+We have example projects you can play with [here](/tree/main/apps).
+To run them, follow the [contributing guide](/blob/main/packages/skia/CONTRIBUTING.md).
